@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import '../core/theme/app_theme.dart';
+import '../core/router/app_router.dart';
 import '../models/account.dart';
 import '../models/transaction.dart';
 import '../widgets/account_card.dart';
 import '../widgets/transaction_tile.dart';
-import 'settings_screen.dart';
-import 'add_expense_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -69,10 +69,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: const Text('Dashboard'),
         actions: [
           IconButton(
-            onPressed:
-                () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                ),
+            onPressed: () => AppNavigation.goToSettings(context),
             icon: const Icon(Icons.settings_outlined),
           ),
         ],
@@ -97,40 +94,84 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildSafeToSpend(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF059669), Color(0xFF10B981)],
+        gradient: LinearGradient(
+          colors: [AppColors.secondaryGreen, AppColors.success],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.secondaryGreen.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Safe to Spend',
-            style: TextStyle(color: Colors.white.withOpacity(.9)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Safe to Spend',
+                style: AppTextStyles.body1.copyWith(
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
+              ),
+              Icon(
+                Icons.visibility,
+                color: Colors.white.withValues(alpha: 0.9),
+                size: 20,
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             '\$${_safeToSpend.toStringAsFixed(2)}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppTextStyles.amountLarge.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 8),
-          Text(
-            '$_daysToPayday days until payday',
-            style: TextStyle(color: Colors.white.withOpacity(.9)),
+          Row(
+            children: [
+              Icon(
+                Icons.schedule,
+                color: Colors.white.withValues(alpha: 0.8),
+                size: 16,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '$_daysToPayday days until payday',
+                style: AppTextStyles.body2.copyWith(
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            "You're \$85 ahead of last month!",
-            style: TextStyle(color: Colors.white.withOpacity(.9), fontSize: 12),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.trending_up, color: Colors.white, size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  "You're \$85 ahead of last month!",
+                  style: AppTextStyles.caption.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -143,15 +184,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         Row(
           children: [
-            const Text(
-              'Accounts',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-            ),
+            Text('Accounts', style: AppTextStyles.h4),
             const Spacer(),
-            IconButton(onPressed: () {}, icon: const Icon(Icons.chevron_right)),
+            TextButton.icon(
+              onPressed: () {},
+              icon: Icon(
+                Icons.visibility,
+                size: 16,
+                color: AppColors.primaryBlue,
+              ),
+              label: Text(
+                'View All',
+                style: AppTextStyles.body2.copyWith(
+                  color: AppColors.primaryBlue,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         SizedBox(
           height: 160,
           child: ListView.builder(
@@ -169,31 +221,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _QuickAction(
         icon: Icons.add,
         label: 'Add Expense',
-        onTap:
-            () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const AddExpenseScreen())),
+        color: AppColors.error,
+        onTap: () => AppNavigation.pushAddExpense(context),
       ),
-      _QuickAction(icon: Icons.swap_horiz, label: 'Transfer', onTap: () {}),
-      _QuickAction(icon: Icons.receipt_long, label: 'Pay Bill', onTap: () {}),
-      _QuickAction(icon: Icons.trending_up, label: 'Add Income', onTap: () {}),
+      _QuickAction(
+        icon: Icons.swap_horiz,
+        label: 'Transfer',
+        color: AppColors.primaryBlue,
+        onTap: () {},
+      ),
+      _QuickAction(
+        icon: Icons.receipt_long,
+        label: 'Pay Bill',
+        color: AppColors.warning,
+        onTap: () {},
+      ),
+      _QuickAction(
+        icon: Icons.trending_up,
+        label: 'Add Income',
+        color: AppColors.success,
+        onTap: () {},
+      ),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Quick Actions',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-        ),
-        const SizedBox(height: 12),
+        Text('Quick Actions', style: AppTextStyles.h4),
+        const SizedBox(height: 16),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: items.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 4,
-            mainAxisExtent: 90,
-            crossAxisSpacing: 12,
+            crossAxisCount: 2,
+            mainAxisExtent: 120,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
           ),
           itemBuilder: (c, i) => items[i],
         ),
@@ -207,15 +270,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         Row(
           children: [
-            const Text(
-              'Recent Transactions',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-            ),
+            Text('Recent Transactions', style: AppTextStyles.h4),
             const Spacer(),
-            IconButton(onPressed: () {}, icon: const Icon(Icons.refresh)),
+            TextButton(
+              onPressed: () => AppNavigation.goToTransactions(context),
+              child: Text(
+                'See All',
+                style: AppTextStyles.body2.copyWith(
+                  color: AppColors.primaryBlue,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 12),
         if (_transactions.isEmpty)
           Container(
             padding: const EdgeInsets.all(24),
@@ -243,7 +312,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
             padding: EdgeInsets.only(top: 12),
             child: LinearProgressIndicator(minHeight: 3),
           ),
+        const SizedBox(height: 24),
+        _buildAiInsightsCard(),
       ],
+    );
+  }
+
+  Widget _buildAiInsightsCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.primaryBlue.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.primaryBlue.withValues(alpha: 0.15),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primaryBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.insights, color: AppColors.primaryBlue),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'AI Insights (Coming Soon)',
+                  style: AppTextStyles.h4.copyWith(fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "You'll soon receive personalized suggestions to optimize your spending and accelerate savings goals.",
+                  style: AppTextStyles.body2,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -252,10 +366,13 @@ class _QuickAction extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Color color;
+
   const _QuickAction({
     required this.icon,
     required this.label,
     required this.onTap,
+    required this.color,
   });
 
   @override
@@ -263,31 +380,43 @@ class _QuickAction extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            height: 56,
-            width: 56,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(.05),
-                  blurRadius: 6,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.gray200.withValues(alpha: 0.5),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            child: Icon(icon, color: const Color(0xFF1E40AF)),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12),
-            textAlign: TextAlign.center,
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: AppTextStyles.caption.copyWith(
+                fontWeight: FontWeight.w500,
+                color: AppColors.gray700,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+            ),
+          ],
+        ),
       ),
     );
   }
