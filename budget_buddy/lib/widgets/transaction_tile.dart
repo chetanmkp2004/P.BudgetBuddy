@@ -8,6 +8,9 @@ class TransactionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = tx.isExpense ? Colors.red[600] : const Color(0xFF059669);
+    final title = tx.merchant ?? tx.description ?? 'Transaction';
+    final cat = tx.categoryName ?? (tx.categoryId?.toString() ?? '');
+    final dt = tx.txnTime;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
       leading: CircleAvatar(
@@ -18,11 +21,8 @@ class TransactionTile extends StatelessWidget {
           size: 18,
         ),
       ),
-      title: Text(
-        tx.merchant,
-        style: const TextStyle(fontWeight: FontWeight.w500),
-      ),
-      subtitle: Text('${tx.category} • ${_friendlyDate(tx.date)}'),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+      subtitle: Text('${cat.isEmpty ? '—' : cat} • ${_friendlyDate(dt)}'),
       trailing: Text(
         (tx.isExpense ? '-' : '+') + '\$${tx.amount.toStringAsFixed(2)}',
         style: TextStyle(fontWeight: FontWeight.w600, color: color),

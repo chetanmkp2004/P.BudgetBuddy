@@ -58,12 +58,7 @@ class AppTheme {
       ),
 
       // Card Theme
-      cardTheme: CardTheme(
-        color: AppColors.cardBackground,
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        shadowColor: AppColors.gray200,
-      ),
+      cardTheme: const CardThemeData(),
 
       // Elevated Button Theme
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -156,12 +151,7 @@ class AppTheme {
           color: Colors.white,
         ),
       ),
-      cardTheme: CardTheme(
-        color: AppColors.gray800,
-        elevation: 1,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        shadowColor: Colors.black12,
-      ),
+      cardTheme: const CardThemeData(),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryBlue,
@@ -277,16 +267,15 @@ class AppTextStyles {
   // Special Text Styles
   static const TextStyle amountLarge = TextStyle(
     fontFamily: 'Inter',
-    fontSize: 48,
+    fontSize: 40,
     fontWeight: FontWeight.w700,
-    color: AppColors.gray900,
+    letterSpacing: -1,
   );
 
   static const TextStyle amountMedium = TextStyle(
     fontFamily: 'Inter',
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: FontWeight.w600,
-    color: AppColors.gray900,
   );
 
   static const TextStyle buttonText = TextStyle(

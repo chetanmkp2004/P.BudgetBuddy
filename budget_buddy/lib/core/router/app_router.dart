@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-// Firebase removed for mock auth mode
 import '../auth/auth_state.dart';
 import '../../screens/welcome_screen.dart';
 import '../../screens/sign_in_screen.dart';
@@ -12,116 +10,62 @@ import '../../screens/savings_screen.dart';
 import '../../screens/settings_screen.dart';
 import '../../screens/transactions_screen.dart';
 
-class AppRouter {
-  static GoRouter create(AuthState auth) => GoRouter(
-    initialLocation: '/welcome',
-    refreshListenable: auth,
-    redirect: (context, state) {
-      final bool isAuthenticated = auth.isAuthenticated;
-      final bool isOnAuthPage = state.fullPath?.startsWith('/auth') ?? false;
-      final bool isOnWelcomePage = state.fullPath == '/welcome';
-
-      if (!isAuthenticated && !isOnAuthPage && !isOnWelcomePage) {
-        return '/welcome';
-      }
-      if (isAuthenticated && (isOnAuthPage || isOnWelcomePage)) {
-        return '/dashboard';
-      }
-      return null;
-    },
-    routes: [
-      // Welcome & Authentication Routes
-      GoRoute(
-        path: '/welcome',
-        name: 'welcome',
-        builder: (context, state) => const WelcomeScreen(),
-      ),
-      GoRoute(
-        path: '/auth/signin',
-        name: 'signin',
-        builder: (context, state) => const SignInScreen(),
-      ),
-      GoRoute(
-        path: '/auth/signup',
-        name: 'signup',
-        builder: (context, state) => const SignUpScreen(),
-      ),
-
-      // Main App Routes (require authentication)
-      GoRoute(
-        path: '/dashboard',
-        name: 'dashboard',
-        builder: (context, state) => const DashboardScreen(),
-      ),
-      GoRoute(
-        path: '/add-expense',
-        name: 'add-expense',
-        builder: (context, state) => const AddExpenseScreen(),
-      ),
-      GoRoute(
-        path: '/budget',
-        name: 'budget',
-        builder: (context, state) => const BudgetScreen(),
-      ),
-      GoRoute(
-        path: '/savings',
-        name: 'savings',
-        builder: (context, state) => const SavingsScreen(),
-      ),
-      GoRoute(
-        path: '/settings',
-        name: 'settings',
-        builder: (context, state) => const SettingsScreen(),
-      ),
-      GoRoute(
-        path: '/transactions',
-        name: 'transactions',
-        builder: (context, state) => const TransactionsScreen(),
-      ),
-    ],
-  );
+class RoutePaths {
+  static const welcome = '/welcome';
+  static const signIn = '/signin';
+  static const signUp = '/signup';
+  static const dashboard = '/dashboard';
+  static const addExpense = '/add-expense';
+  static const budget = '/budget';
+  static const savings = '/savings';
+  static const settings = '/settings';
+  static const transactions = '/transactions';
 }
 
-// Navigation helper class
-class AppNavigation {
-  static void goToWelcome(BuildContext context) {
-    context.go('/welcome');
-  }
+/// Simple auth gate deciding initial home.
+Widget buildHome(AuthState auth) =>
+    auth.isAuthenticated ? const DashboardScreen() : const WelcomeScreen();
 
-  static void goToSignIn(BuildContext context) {
-    context.go('/auth/signin');
+Route<dynamic>? onGenerateRoute(RouteSettings settings) {
+  switch (settings.name) {
+    case RoutePaths.welcome:
+      return _page(const WelcomeScreen());
+    case RoutePaths.signIn:
+      return _page(const SignInScreen());
+    case RoutePaths.signUp:
+      return _page(const SignUpScreen());
+    case RoutePaths.dashboard:
+      return _page(const DashboardScreen());
+    case RoutePaths.addExpense:
+      return _page(const AddExpenseScreen());
+    case RoutePaths.budget:
+      return _page(const BudgetScreen());
+    case RoutePaths.savings:
+      return _page(const SavingsScreen());
+    case RoutePaths.settings:
+      return _page(const SettingsScreen());
+    case RoutePaths.transactions:
+      return _page(const TransactionsScreen());
   }
+  return null; // fallback to unknown route handler if provided
+}
 
-  static void goToSignUp(BuildContext context) {
-    context.go('/auth/signup');
-  }
+PageRoute<dynamic> _page(Widget child) =>
+    MaterialPageRoute(builder: (_) => child);
 
-  static void goToDashboard(BuildContext context) {
-    context.go('/dashboard');
-  }
-
-  static void goToAddExpense(BuildContext context) {
-    context.go('/add-expense');
-  }
-
-  static void goToBudget(BuildContext context) {
-    context.go('/budget');
-  }
-
-  static void goToSavings(BuildContext context) {
-    context.go('/savings');
-  }
-
-  static void goToSettings(BuildContext context) {
-    context.go('/settings');
-  }
-
-  static void goToTransactions(BuildContext context) {
-    context.go('/transactions');
-  }
-
-  // Push methods (for stack navigation)
-  static void pushAddExpense(BuildContext context) {
-    context.push('/add-expense');
-  }
+class Nav {
+  static Future<T?> push<T>(
+    BuildContext context,
+    String routeName, {
+    Object? args,
+  }) => Navigator.of(context).pushNamed<T>(routeName, arguments: args);
+  static void replace(BuildContext context, String routeName, {Object? args}) =>
+      Navigator.of(context).pushReplacementNamed(routeName, arguments: args);
+  static void toDashboard(BuildContext context) =>
+      replace(context, RoutePaths.dashboard);
+  static void toSignIn(BuildContext context) =>
+      replace(context, RoutePaths.signIn);
+  static void toSignUp(BuildContext context) =>
+      push(context, RoutePaths.signUp);
+  static void back(BuildContext context) => Navigator.of(context).pop();
 }

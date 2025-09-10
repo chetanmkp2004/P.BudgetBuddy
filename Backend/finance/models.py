@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
+from django.core.exceptions import ValidationError
+from decimal import Decimal
 
 User = get_user_model()
 
@@ -51,9 +53,9 @@ class Account(TimeStampedModel):
 		return f"{self.name} ({self.get_type_display()})"
 
 	def clean(self):
-		# ensure non-negative balance stored
-		if self.balance is not None and self.balance < 0:
-			raise models.ValidationError({"balance": "Balance cannot be negative."})
+		# Allow negative balances (overdraft) rather than raising validation errors.
+		# If you want to forbid negative balances, enforce at transaction creation instead.
+		return
 
 
 class Category(TimeStampedModel):
@@ -79,7 +81,7 @@ class Category(TimeStampedModel):
 
 	def clean(self):
 		if self.default_budget_limit is not None and self.default_budget_limit < 0:
-			raise models.ValidationError({"default_budget_limit": "Budget limit cannot be negative."})
+			raise ValidationError({"default_budget_limit": "Budget limit cannot be negative."})
 
 
 class Budget(TimeStampedModel):
@@ -126,7 +128,7 @@ class Transaction(TimeStampedModel):
 	account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="transactions")
 	category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="transactions")
 	direction = models.CharField(max_length=10, choices=DIRECTION, default="out")
-	amount = models.DecimalField(max_digits=14, decimal_places=2, validators=[MinValueValidator(0.01)])
+	amount = models.DecimalField(max_digits=14, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
 	currency = models.CharField(max_length=8, default="USD")
 	description = models.CharField(max_length=255, blank=True)
 	txn_time = models.DateTimeField()
@@ -160,7 +162,7 @@ class Transaction(TimeStampedModel):
 		if self.currency and self.account and self.currency != self.account.currency:
 			errors["currency"] = "Transaction currency must match account currency."
 		if errors:
-			raise models.ValidationError(errors)
+			raise ValidationError(errors)
 
 
 class Goal(TimeStampedModel):
@@ -173,7 +175,7 @@ class Goal(TimeStampedModel):
 
 	user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="goals")
 	name = models.CharField(max_length=120)
-	target_amount = models.DecimalField(max_digits=14, decimal_places=2, validators=[MinValueValidator(0.01)])
+	target_amount = models.DecimalField(max_digits=14, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
 	deadline = models.DateField(null=True, blank=True)
 	status = models.CharField(max_length=12, choices=STATUS, default="active")
 	notes = models.TextField(blank=True, default="")
@@ -183,12 +185,12 @@ class Goal(TimeStampedModel):
 
 	def clean(self):
 		if self.target_amount is not None and self.target_amount <= 0:
-			raise models.ValidationError({"target_amount": "Target must be greater than 0."})
+			raise ValidationError({"target_amount": "Target must be greater than 0."})
 
 
 class GoalContribution(TimeStampedModel):
 	goal = models.ForeignKey(Goal, on_delete=models.CASCADE, related_name="contributions")
-	amount = models.DecimalField(max_digits=14, decimal_places=2, validators=[MinValueValidator(0.01)])
+	amount = models.DecimalField(max_digits=14, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
 	contributed_at = models.DateTimeField()
 	source_account = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True, related_name="goal_contributions")
 	note = models.CharField(max_length=255, blank=True)
@@ -205,7 +207,7 @@ class GoalContribution(TimeStampedModel):
 		if self.goal and self.goal.status in {"canceled", "completed"}:
 			errors["goal"] = "Cannot contribute to a canceled or completed goal."
 		if errors:
-			raise models.ValidationError(errors)
+			raise ValidationError(errors)
 
 
 class Insight(TimeStampedModel):

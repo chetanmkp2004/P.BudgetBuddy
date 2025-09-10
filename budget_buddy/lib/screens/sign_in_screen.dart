@@ -26,7 +26,7 @@ class _SignInScreenState extends State<SignInScreen> {
         _passwordController.text,
       );
       if (!mounted) return;
-      AppNavigation.goToDashboard(context);
+      Nav.toDashboard(context);
     } catch (e) {
       final msg = e.toString().replaceFirst('AuthException', 'Auth');
       if (mounted) {
@@ -121,7 +121,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   const SizedBox(height: 16),
                   Center(
                     child: TextButton(
-                      onPressed: () => AppNavigation.goToSignUp(context),
+                      onPressed: () => Nav.push(context, RoutePaths.signUp),
                       child: const Text("Don't have an account? Sign Up"),
                     ),
                   ),

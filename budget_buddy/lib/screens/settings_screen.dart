@@ -4,6 +4,7 @@ import '../core/auth/auth_state.dart';
 import '../core/theme/theme_notifier.dart';
 import '../core/theme/app_theme.dart';
 import '../core/router/app_router.dart';
+import '../core/state/settings_state.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,12 +14,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _notificationsEnabled = true;
-  bool _biometricEnabled = false;
-  // Dark mode now managed by ThemeNotifier
-  String _selectedCurrency = 'USD';
-  String _selectedLanguage = 'English';
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -70,6 +65,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildPreferencesSection() {
+    final settings = context.watch<SettingsState>();
     return _buildSection('Preferences', [
       SwitchListTile(
         title: Text('Notifications', style: AppTextStyles.body1),
@@ -78,12 +74,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           style: AppTextStyles.body2.copyWith(color: AppColors.gray600),
         ),
         secondary: Icon(Icons.notifications, color: AppColors.primaryBlue),
-        value: _notificationsEnabled,
-        onChanged: (value) {
-          setState(() {
-            _notificationsEnabled = value;
-          });
-        },
+        value: settings.notifications,
+        onChanged: (value) => settings.setNotifications(value),
         activeColor: AppColors.primaryBlue,
       ),
       Consumer<ThemeNotifier>(
@@ -104,7 +96,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         leading: Icon(Icons.attach_money, color: AppColors.primaryBlue),
         title: Text('Currency', style: AppTextStyles.body1),
         subtitle: Text(
-          _selectedCurrency,
+          settings.currency,
           style: AppTextStyles.body2.copyWith(color: AppColors.gray600),
         ),
         trailing: Icon(Icons.chevron_right, color: AppColors.gray500),
@@ -114,7 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         leading: Icon(Icons.language, color: AppColors.primaryBlue),
         title: Text('Language', style: AppTextStyles.body1),
         subtitle: Text(
-          _selectedLanguage,
+          settings.language,
           style: AppTextStyles.body2.copyWith(color: AppColors.gray600),
         ),
         trailing: Icon(Icons.chevron_right, color: AppColors.gray500),
@@ -132,11 +124,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           style: AppTextStyles.body2.copyWith(color: AppColors.gray600),
         ),
         secondary: Icon(Icons.fingerprint, color: AppColors.primaryBlue),
-        value: _biometricEnabled,
+        value: false,
         onChanged: (value) {
-          setState(() {
-            _biometricEnabled = value;
-          });
+          // TODO: Implement biometric login
           _showComingSoonDialog('Biometric authentication');
         },
         activeColor: AppColors.primaryBlue,
@@ -315,6 +305,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showCurrencyDialog() {
+    final settings = context.read<SettingsState>();
     final currencies = ['USD', 'EUR', 'GBP', 'JPY', 'INR', 'CAD', 'AUD'];
 
     showDialog(
@@ -329,11 +320,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     return RadioListTile<String>(
                       title: Text(currency),
                       value: currency,
-                      groupValue: _selectedCurrency,
+                      groupValue: settings.currency,
                       onChanged: (value) {
-                        setState(() {
-                          _selectedCurrency = value!;
-                        });
+                        if (value != null) {
+                          settings.setCurrency(value);
+                        }
                         Navigator.of(context).pop();
                       },
                     );
@@ -350,6 +341,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showLanguageDialog() {
+    final settings = context.read<SettingsState>();
     final languages = ['English', 'Spanish', 'French', 'German', 'Japanese'];
 
     showDialog(
@@ -364,11 +356,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     return RadioListTile<String>(
                       title: Text(language),
                       value: language,
-                      groupValue: _selectedLanguage,
+                      groupValue: settings.language,
                       onChanged: (value) {
-                        setState(() {
-                          _selectedLanguage = value!;
-                        });
+                        if (value != null) {
+                          settings.setLanguage(value);
+                        }
                         Navigator.of(context).pop();
                         _showComingSoonDialog('Multi-language support');
                       },
@@ -401,7 +393,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onPressed: () {
                   Navigator.of(context).pop();
                   context.read<AuthState>().signOut();
-                  AppNavigation.goToWelcome(context);
+                  Nav.replace(context, RoutePaths.welcome);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.error,

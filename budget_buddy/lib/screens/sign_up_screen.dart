@@ -38,17 +38,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
         curve: Curves.easeOut,
       );
     } else {
-      // Final submit: register with Firebase Auth
+      // Final submit: register with backend (JWT)
       try {
-        await context.read<AuthState>().signUp(
+        final income = double.tryParse(_income.text.trim());
+        final auth = context.read<AuthState>();
+        await auth.register(
           _email.text.trim(),
           _password.text,
+          monthlyIncome: income,
         );
         if (!mounted) return;
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Account created')));
-        AppNavigation.goToDashboard(context);
+        Nav.toDashboard(context);
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(
@@ -197,7 +200,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   const SizedBox(height: 16),
                   Center(
                     child: TextButton(
-                      onPressed: () => AppNavigation.goToSignIn(context),
+                      onPressed: () => Nav.replace(context, RoutePaths.signIn),
                       child: const Text('Already have an account? Sign In'),
                     ),
                   ),
@@ -245,3 +248,5 @@ class _ProgressBar extends StatelessWidget {
     );
   }
 }
+
+// (Removed temporary mock signUp extension; using AuthState.register instead.)

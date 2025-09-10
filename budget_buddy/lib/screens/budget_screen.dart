@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../core/theme/app_theme.dart';
+import 'package:provider/provider.dart';
+import '../core/auth/auth_state.dart';
+import '../core/api/api_client.dart';
+import '../core/api/finance_service.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class BudgetScreen extends StatefulWidget {
@@ -13,49 +17,72 @@ class BudgetScreen extends StatefulWidget {
 class _BudgetScreenState extends State<BudgetScreen> {
   DateTime _selectedMonth = DateTime.now();
 
-  final List<Map<String, dynamic>> _budgets = [
-    {
-      'category': 'Food & Dining',
-      'icon': Icons.restaurant,
-      'color': AppColors.warning,
-      'budgeted': 800.0,
-      'spent': 650.0,
-    },
-    {
-      'category': 'Transportation',
-      'icon': Icons.directions_car,
-      'color': AppColors.success,
-      'budgeted': 400.0,
-      'spent': 480.0,
-    },
-    {
-      'category': 'Shopping',
-      'icon': Icons.shopping_bag,
-      'color': AppColors.primaryBlue,
-      'budgeted': 600.0,
-      'spent': 320.0,
-    },
-    {
-      'category': 'Entertainment',
-      'icon': Icons.movie,
-      'color': AppColors.error,
-      'budgeted': 300.0,
-      'spent': 275.0,
-    },
-    {
-      'category': 'Bills & Utilities',
-      'icon': Icons.receipt_long,
-      'color': AppColors.gray600,
-      'budgeted': 1200.0,
-      'spent': 1200.0,
-    },
-  ];
+  List<Map<String, dynamic>> _budgets = [];
+  bool _loading = false;
+  String? _error;
+  FinanceService? _service;
 
-  double get _totalBudgeted =>
-      _budgets.fold(0, (sum, budget) => sum + budget['budgeted']);
-  double get _totalSpent =>
-      _budgets.fold(0, (sum, budget) => sum + budget['spent']);
+  double get _totalBudgeted => _budgets.fold(0.0, (sum, budget) {
+    final v = budget['budgeted'] ?? budget['limit'] ?? 0;
+    return sum + (v is num ? v.toDouble() : double.tryParse('$v') ?? 0);
+  });
+  double get _totalSpent => _budgets.fold(0.0, (sum, budget) {
+    final v = budget['spent'] ?? 0;
+    return sum + (v is num ? v.toDouble() : double.tryParse('$v') ?? 0);
+  });
   double get _remaining => _totalBudgeted - _totalSpent;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final auth = context.watch<AuthState>();
+    if (_service == null || _service!.token != auth.accessToken) {
+      _service = FinanceService(
+        ApiClient(),
+        token: auth.accessToken,
+        onUnauthorized: () async {
+          final refreshed = await auth.refresh();
+          if (refreshed) _service!.token = auth.accessToken;
+          return refreshed;
+        },
+      );
+      _fetchBudgets();
+    }
+  }
+
+  Future<void> _fetchBudgets() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final svc = _service;
+      if (svc == null) return;
+      final list = await svc.fetchBudgets();
+      // Map backend fields to UI expectations. Assume backend returns category_name, limit, spent.
+      _budgets =
+          list.map((b) {
+            return {
+              'category': b['category_name'] ?? b['category'] ?? 'Unknown',
+              'icon': Icons.category,
+              // choose a deterministic color variant
+              'color': AppColors.primaryBlue,
+              'budgeted':
+                  (b['limit'] is num)
+                      ? (b['limit'] as num).toDouble()
+                      : double.tryParse('${b['limit']}') ?? 0,
+              'spent':
+                  (b['spent'] is num)
+                      ? (b['spent'] as num).toDouble()
+                      : double.tryParse('${b['spent']}') ?? 0,
+            };
+          }).toList();
+    } catch (e) {
+      _error = 'Failed to load budgets';
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,9 +99,26 @@ class _BudgetScreenState extends State<BudgetScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [_buildHeader(), Expanded(child: _buildBudgetList())],
-      ),
+      body:
+          _loading && _budgets.isEmpty
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+              ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(_error!, style: AppTextStyles.body1),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: _fetchBudgets,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              )
+              : Column(
+                children: [_buildHeader(), Expanded(child: _buildBudgetList())],
+              ),
     );
   }
 
@@ -311,8 +355,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
   }
 
   Widget _buildBudgetCard(Map<String, dynamic> budget) {
-    final spent = budget['spent'] as double;
-    final budgeted = budget['budgeted'] as double;
+    final spent = (budget['spent'] as double);
+    final budgeted = (budget['budgeted'] as double);
     final progress = budgeted > 0 ? spent / budgeted : 0.0;
     final remaining = budgeted - spent;
 

@@ -29,12 +29,23 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class TransactionSerializer(serializers.ModelSerializer):
+    # Allow omitting account; backend will assign a default if available
+    account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all(), required=False, allow_null=True)
+    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), required=False, allow_null=True)
     class Meta:
         model = Transaction
         fields = [
             'id','direction','amount','currency','description','txn_time','merchant','is_pending','external_id','account','category','created_at','updated_at'
         ]
         read_only_fields = ['created_at','updated_at']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request') if hasattr(self, 'context') else None
+        user = getattr(request, 'user', None)
+        if user and getattr(user, 'is_authenticated', False):
+            self.fields['account'].queryset = Account.objects.filter(user=user)
+            self.fields['category'].queryset = Category.objects.filter(user=user)
 
 
 class BudgetSerializer(serializers.ModelSerializer):

@@ -1,14 +1,23 @@
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db import models
 from rest_framework import generics, permissions, status, viewsets, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import UserProfile, UserActivity, Account, Category, Transaction, Budget, Goal, GoalContribution, Insight
-from .serializers import UserProfileSerializer, PreferencesSerializer, AccountSerializer, CategorySerializer, TransactionSerializer, BudgetSerializer
-from .permissions import HasMobileApiKey, IsOwnerOnly
+from .serializers import (
+    UserProfileSerializer,
+    PreferencesSerializer,
+    AccountSerializer,
+    CategorySerializer,
+    TransactionSerializer,
+    BudgetSerializer,
+)
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from .permissions import HasMobileApiKey, IsOwnerOnly, IsAuthenticatedOrOptions
 import json
 
 
@@ -25,7 +34,7 @@ class HealthView(APIView):
 
 class ProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
-    permission_classes = [permissions.IsAuthenticated, HasMobileApiKey]
+    permission_classes = [IsAuthenticatedOrOptions, HasMobileApiKey]
 
     def get_object(self):
         profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
@@ -33,7 +42,7 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 
 
 class PreferencesView(APIView):
-    permission_classes = [permissions.IsAuthenticated, HasMobileApiKey]
+    permission_classes = [IsAuthenticatedOrOptions, HasMobileApiKey]
 
     def get(self, request):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
@@ -49,7 +58,7 @@ class PreferencesView(APIView):
 
 
 class ExportDataView(APIView):
-    permission_classes = [permissions.IsAuthenticated, HasMobileApiKey]
+    permission_classes = [IsAuthenticatedOrOptions, HasMobileApiKey]
 
     def get(self, request):
         # Simple JSON export of the user's data
@@ -70,7 +79,7 @@ class ExportDataView(APIView):
 
 
 class DeleteAccountView(APIView):
-    permission_classes = [permissions.IsAuthenticated, HasMobileApiKey]
+    permission_classes = [IsAuthenticatedOrOptions, HasMobileApiKey]
 
     @transaction.atomic
     def delete(self, request):
@@ -95,6 +104,51 @@ class TokenRefresh(TokenRefreshView):
     permission_classes = []
 
 
+class RegisterView(APIView):
+    """Create a new Django user (username=email) and return JWT token pair plus profile.
+
+    Requires only the mobile API key header.
+    """
+    authentication_classes = []
+    permission_classes = [HasMobileApiKey]
+
+    def post(self, request):
+        email = request.data.get('email', '').strip().lower()
+        password = request.data.get('password', '')
+        monthly_income = request.data.get('monthly_income', 0)
+        preferences = request.data.get('preferences', {})
+        if not email or '@' not in email:
+            return Response({'detail': 'Valid email required.'}, status=400)
+        if not password or len(password) < 6:
+            return Response({'detail': 'Password must be at least 6 chars.'}, status=400)
+        username = email  # using email as username
+        if User.objects.filter(username=username).exists():
+            return Response({'detail': 'User already exists.'}, status=400)
+        user = User.objects.create_user(username=username, email=email, password=password)
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        if monthly_income:
+            profile.monthly_income = monthly_income or 0
+        if isinstance(preferences, dict):
+            profile.preferences = preferences
+        profile.save()
+        # Seed default account & categories if none
+        if not Account.objects.filter(user=user).exists():
+            Account.objects.create(user=user, name='Checking', type='checking', balance=0)
+        if not Category.objects.filter(user=user).exists():
+            defaults = [
+                ('Groceries', 'expense'),
+                ('Transport', 'expense'),
+                ('Salary', 'income'),
+            ]
+            for name, ctype in defaults:
+                Category.objects.create(user=user, name=name, type=ctype, is_custom=False)
+        token_serializer = TokenObtainPairSerializer(data={'username': username, 'password': password})
+        token_serializer.is_valid(raise_exception=True)
+        data = token_serializer.validated_data
+        data['profile'] = UserProfileSerializer(profile).data
+        return Response(data, status=201)
+
+
 def log_activity(get_response):
     def middleware(request):
         response = get_response(request)
@@ -112,7 +166,7 @@ def log_activity(get_response):
     return middleware
 class AccountViewSet(viewsets.ModelViewSet):
     serializer_class = AccountSerializer
-    permission_classes = [permissions.IsAuthenticated, HasMobileApiKey]
+    permission_classes = [IsAuthenticatedOrOptions, HasMobileApiKey]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['type', 'is_active', 'currency']
     search_fields = ['name', 'institution']
@@ -120,6 +174,12 @@ class AccountViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Account.objects.filter(user=self.request.user)
+
+    def list(self, request, *args, **kwargs):
+        # Auto-seed a default account for legacy users that pre-date seeding or who deleted all accounts.
+        if not Account.objects.filter(user=request.user).exists():
+            Account.objects.create(user=request.user, name='Checking', type='checking', balance=0)
+        return super().list(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -131,7 +191,7 @@ class AccountViewSet(viewsets.ModelViewSet):
 
 class TransactionViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionSerializer
-    permission_classes = [permissions.IsAuthenticated, HasMobileApiKey]
+    permission_classes = [IsAuthenticatedOrOptions, HasMobileApiKey]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = {
         'direction': ['exact'],
@@ -148,7 +208,21 @@ class TransactionViewSet(viewsets.ModelViewSet):
         return Transaction.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        # Ensure an account is always associated. If none supplied, pick or create one.
+        account = serializer.validated_data.get('account')
+        if not account:
+            account = Account.objects.filter(
+                user=self.request.user,
+                is_active=True,
+            ).order_by('id').first()
+            if not account:
+                account = Account.objects.create(
+                    user=self.request.user,
+                    name='Default Account',
+                    type='checking',
+                    balance=0,
+                )
+        serializer.save(user=self.request.user, account=account)
 
     def perform_update(self, serializer):
         # Reconcile balances: remove old txn effect then apply new
@@ -163,7 +237,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
-    permission_classes = [permissions.IsAuthenticated, HasMobileApiKey]
+    permission_classes = [IsAuthenticatedOrOptions, HasMobileApiKey]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['type']
     search_fields = ['name']
@@ -172,13 +246,25 @@ class CategoryViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Category.objects.filter(user=self.request.user)
 
+    def list(self, request, *args, **kwargs):
+        # Auto-seed a basic set of categories for legacy users if none exist.
+        if not Category.objects.filter(user=request.user).exists():
+            defaults = [
+                ('Groceries', 'expense'),
+                ('Transport', 'expense'),
+                ('Salary', 'income'),
+            ]
+            for name, ctype in defaults:
+                Category.objects.create(user=request.user, name=name, type=ctype, is_custom=False)
+        return super().list(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
 
 class BudgetViewSet(viewsets.ModelViewSet):
     serializer_class = BudgetSerializer
-    permission_classes = [permissions.IsAuthenticated, HasMobileApiKey]
+    permission_classes = [IsAuthenticatedOrOptions, HasMobileApiKey]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['period', 'category']
     search_fields = []
@@ -192,7 +278,7 @@ class BudgetViewSet(viewsets.ModelViewSet):
 
 
 class SummaryView(APIView):
-    permission_classes = [permissions.IsAuthenticated, HasMobileApiKey]
+    permission_classes = [IsAuthenticatedOrOptions, HasMobileApiKey]
 
     def get(self, request):
         user = request.user
@@ -211,7 +297,7 @@ class SummaryView(APIView):
 
 
 class CategorySpendingReportView(APIView):
-    permission_classes = [permissions.IsAuthenticated, HasMobileApiKey]
+    permission_classes = [IsAuthenticatedOrOptions, HasMobileApiKey]
 
     def get(self, request):
         user = request.user
@@ -227,7 +313,7 @@ class CategorySpendingReportView(APIView):
 
 
 class BudgetProgressView(APIView):
-    permission_classes = [permissions.IsAuthenticated, HasMobileApiKey]
+    permission_classes = [IsAuthenticatedOrOptions, HasMobileApiKey]
 
     def get(self, request):
         user = request.user

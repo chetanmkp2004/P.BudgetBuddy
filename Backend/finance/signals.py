@@ -13,7 +13,7 @@ def _apply_transaction_to_account(account: Account, txn: Transaction, sign: int)
     else:  # transfer: don't adjust here (could be modeled as two txns)
         delta = Decimal(0)
     account.balance = (account.balance or Decimal(0)) + delta
-    account.full_clean()
+    # Skip full_clean to allow negative balances; rely on explicit validation elsewhere.
     account.save(update_fields=["balance", "updated_at"])
 
 

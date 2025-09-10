@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../core/theme/app_theme.dart';
+import 'package:provider/provider.dart';
+import '../core/auth/auth_state.dart';
+import '../core/api/finance_provider.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -21,38 +24,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   bool _isLoading = false;
   bool _enableLocation = false;
 
-  final List<Map<String, dynamic>> _categories = [
-    {
-      'name': 'Food & Dining',
-      'icon': Icons.restaurant,
-      'color': AppColors.warning,
-    },
-    {
-      'name': 'Shopping',
-      'icon': Icons.shopping_bag,
-      'color': AppColors.primaryBlue,
-    },
-    {
-      'name': 'Transportation',
-      'icon': Icons.directions_car,
-      'color': AppColors.success,
-    },
-    {'name': 'Entertainment', 'icon': Icons.movie, 'color': AppColors.error},
-    {
-      'name': 'Bills & Utilities',
-      'icon': Icons.receipt_long,
-      'color': AppColors.gray600,
-    },
-    {
-      'name': 'Healthcare',
-      'icon': Icons.local_hospital,
-      'color': AppColors.error,
-    },
-    {'name': 'Education', 'icon': Icons.school, 'color': AppColors.primaryBlue},
-    {'name': 'Travel', 'icon': Icons.flight, 'color': AppColors.secondaryGreen},
-    {'name': 'Personal Care', 'icon': Icons.face, 'color': AppColors.warning},
-    {'name': 'Other', 'icon': Icons.more_horiz, 'color': AppColors.gray500},
-  ];
+  final List<Map<String, dynamic>> _categories = [];
+  bool _loadingCategories = false;
+  Map<String, int> _categoryNameToId = {};
+  // Accounts
+  List<Map<String, dynamic>> _accounts = [];
+  String? _selectedAccountName;
+  bool _loadingAccounts = false;
 
   @override
   void dispose() {
@@ -60,6 +38,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     _merchantController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_categories.isEmpty && !_loadingCategories) {
+      _fetchCategories();
+    }
+    if (_accounts.isEmpty && !_loadingAccounts) {
+      _fetchAccounts();
+    }
   }
 
   @override
@@ -100,6 +89,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             _buildAmountSection(),
                             const SizedBox(height: 32),
                             _buildCategorySection(),
+                            const SizedBox(height: 24),
+                            _buildAccountSection(),
                             const SizedBox(height: 24),
                             _buildDetailsSection(),
                             const SizedBox(height: 24),
@@ -180,75 +171,69 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 
   Widget _buildCategorySection() {
+    if (_loadingCategories) {
+      return const Center(child: CircularProgressIndicator());
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Category', style: AppTextStyles.h4),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 120,
-          child: GridView.builder(
-            scrollDirection: Axis.horizontal,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisExtent: 100,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: _categories.length,
-            itemBuilder: (context, index) {
-              final category = _categories[index];
-              final isSelected = _selectedCategory == category['name'];
-
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedCategory = category['name'];
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color:
-                        isSelected
-                            ? category['color'].withValues(alpha: 0.1)
-                            : AppColors.cardBackground,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected ? category['color'] : AppColors.gray200,
-                      width: isSelected ? 2 : 1,
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          value: _categories.isEmpty ? null : _selectedCategory,
+          items:
+              _categories
+                  .map(
+                    (c) => DropdownMenuItem<String>(
+                      value: c['name'] as String,
+                      child: Text(c['name'] as String),
                     ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        category['icon'],
-                        color:
-                            isSelected ? category['color'] : AppColors.gray500,
-                        size: 24,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        category['name'],
-                        style: AppTextStyles.caption.copyWith(
-                          color:
-                              isSelected
-                                  ? category['color']
-                                  : AppColors.gray600,
-                          fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.w400,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
+                  )
+                  .toList(),
+          onChanged: (v) {
+            if (v != null) {
+              setState(() => _selectedCategory = v);
+            }
+          },
+          decoration: const InputDecoration(labelText: 'Select Category'),
+          validator: (v) {
+            if ((v == null || v.isEmpty) && _categories.isNotEmpty)
+              return 'Pick a category';
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAccountSection() {
+    if (_loadingAccounts) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Account', style: AppTextStyles.h4),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          value: _accounts.isEmpty ? null : _selectedAccountName,
+          items:
+              _accounts
+                  .map(
+                    (a) => DropdownMenuItem<String>(
+                      value: a['name'] as String,
+                      child: Text(a['name'] as String),
+                    ),
+                  )
+                  .toList(),
+          onChanged: (v) => setState(() => _selectedAccountName = v),
+          decoration: const InputDecoration(labelText: 'Select Account'),
+          validator: (v) {
+            if ((v == null || v.isEmpty) && _accounts.isNotEmpty) {
+              return 'Pick an account';
+            }
+            return null;
+          },
         ),
       ],
     );
@@ -424,26 +409,30 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     });
 
     try {
-      // TODO: Save expense to backend/local database
-      await Future.delayed(const Duration(seconds: 2)); // Simulate network call
-
+      final auth = context.read<AuthState>();
+      final service =
+          context.read<FinanceProvider>().service..token = auth.accessToken;
+      final amount = double.parse(_amountController.text);
+      await service.createTransaction(
+        amount: amount,
+        merchant: _merchantController.text,
+        description: _notesController.text,
+        categoryId: _categoryNameToId[_selectedCategory],
+        accountId: _accountNameToId[_selectedAccountName],
+        txnTime: _selectedDate,
+      );
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Expense saved successfully!'),
+          content: const Text('Expense saved'),
           backgroundColor: AppColors.success,
         ),
       );
-
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Failed to save expense'),
-          backgroundColor: AppColors.error,
-        ),
+        SnackBar(content: Text('Failed: $e'), backgroundColor: AppColors.error),
       );
     } finally {
       if (mounted) {
@@ -451,6 +440,54 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _fetchCategories() async {
+    setState(() => _loadingCategories = true);
+    try {
+      final finance = context.read<FinanceProvider>().service;
+      final list = await finance.fetchCategories();
+      _categories.clear();
+      for (final c in list) {
+        final name = c['name'] ?? c['title'] ?? 'Unnamed';
+        final id = c['id'];
+        if (id != null) {
+          _categoryNameToId[name] =
+              id is int ? id : int.tryParse(id.toString()) ?? 0;
+        }
+        _categories.add({'name': name});
+      }
+      if (_categories.isNotEmpty) {
+        _selectedCategory = _categories.first['name'];
+      }
+    } catch (_) {
+      // silent fail keeps UI functional
+    } finally {
+      if (mounted) setState(() => _loadingCategories = false);
+    }
+  }
+
+  final Map<String, int> _accountNameToId = {};
+  Future<void> _fetchAccounts() async {
+    setState(() => _loadingAccounts = true);
+    try {
+      final finance = context.read<FinanceProvider>().service;
+      final accModels = await finance.fetchAccounts();
+      _accounts = accModels.map((a) => {'id': a.id, 'name': a.name}).toList();
+      _accountNameToId.clear();
+      for (final a in _accounts) {
+        final idRaw = a['id'];
+        final id = int.tryParse(idRaw.toString());
+        if (id != null) _accountNameToId[a['name'] as String] = id;
+      }
+      if (_accounts.isNotEmpty) {
+        _selectedAccountName = _accounts.first['name'] as String;
+      }
+    } catch (_) {
+      // ignore
+    } finally {
+      if (mounted) setState(() => _loadingAccounts = false);
     }
   }
 }

@@ -90,7 +90,7 @@ class WelcomeScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () => AppNavigation.goToSignUp(context),
+                  onPressed: () => Nav.push(context, RoutePaths.signUp),
                   child: const Text('Get Started'),
                 ),
               ),
@@ -99,7 +99,7 @@ class WelcomeScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 56,
                 child: TextButton(
-                  onPressed: () => AppNavigation.goToSignIn(context),
+                  onPressed: () => Nav.push(context, RoutePaths.signIn),
                   child: Text(
                     'I already have an account',
                     style: AppTextStyles.buttonText.copyWith(

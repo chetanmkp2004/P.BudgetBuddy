@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     HealthView, ProfileView, PreferencesView, ExportDataView, DeleteAccountView,
-    TokenPairView, TokenRefresh,
+    TokenPairView, TokenRefresh, RegisterView,
     AccountViewSet, TransactionViewSet, CategoryViewSet, BudgetViewSet,
     SummaryView, CategorySpendingReportView, BudgetProgressView,
 )
@@ -18,6 +18,7 @@ urlpatterns = [
     path("health/", HealthView.as_view(), name="finance-health"),
     path("auth/token/", TokenPairView.as_view(), name="token_obtain_pair"),
     path("auth/token/refresh/", TokenRefresh.as_view(), name="token_refresh"),
+    path("auth/register/", RegisterView.as_view(), name="register"),
 
     path("profile/", ProfileView.as_view(), name="profile"),
     path("preferences/", PreferencesView.as_view(), name="preferences"),

@@ -3,6 +3,11 @@ import '../core/theme/app_theme.dart';
 import '../core/router/app_router.dart';
 import '../models/account.dart';
 import '../models/transaction.dart';
+import '../core/api/api_client.dart';
+import '../core/api/finance_service.dart';
+import '../core/api/finance_provider.dart';
+import 'package:provider/provider.dart';
+import '../core/auth/auth_state.dart';
 import '../widgets/account_card.dart';
 import '../widgets/transaction_tile.dart';
 
@@ -15,52 +20,97 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   bool _loading = false;
-  final List<AccountModel> _accounts = [
-    AccountModel(id: '1', name: 'Checking', type: 'Checking', balance: 2450.32),
-    AccountModel(id: '2', name: 'Savings', type: 'Savings', balance: 8200.75),
-    AccountModel(
-      id: '3',
-      name: 'Credit Card',
-      type: 'Credit',
-      balance: -430.12,
-    ),
-  ];
-  final List<TransactionModel> _transactions = [
-    TransactionModel(
-      id: 't1',
-      merchant: 'Starbucks',
-      category: 'Food',
-      amount: 6.25,
-      date: DateTime.now(),
-      isExpense: true,
-    ),
-    TransactionModel(
-      id: 't2',
-      merchant: 'Salary',
-      category: 'Income',
-      amount: 2500,
-      date: DateTime.now().subtract(const Duration(days: 1)),
-      isExpense: false,
-    ),
-    TransactionModel(
-      id: 't3',
-      merchant: 'Uber',
-      category: 'Transport',
-      amount: 12.90,
-      date: DateTime.now().subtract(const Duration(days: 1)),
-      isExpense: true,
-    ),
-  ];
+  List<AccountModel> _accounts = [];
+  List<TransactionModel> _transactions = [];
+  Map<String, dynamic>? _summary; // holds totals from backend
+  FinanceService? _service;
 
-  Future<void> _refresh() async {
-    setState(() => _loading = true);
-    await Future.delayed(const Duration(seconds: 1)); // mock network
-    if (!mounted) return;
-    setState(() => _loading = false);
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final auth = context.watch<AuthState>();
+    if (!auth.isAuthenticated) {
+      // Redirect to sign-in if unauthenticated
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Nav.replace(context, RoutePaths.signIn);
+      });
+      return;
+    }
+    if (_service == null || _service!.token != auth.accessToken) {
+      _service = FinanceService(
+        ApiClient(),
+        token: auth.accessToken,
+        onUnauthorized: () async {
+          final refreshed = await auth.refresh();
+          if (refreshed) {
+            _service!.token = auth.accessToken;
+          }
+          return refreshed;
+        },
+      );
+      // First time service created -> load data
+      if (_accounts.isEmpty && !_loading) {
+        _initialLoad();
+      }
+    }
   }
 
-  double get _safeToSpend => 1200.45; // mock calculation
-  int get _daysToPayday => 9; // mock
+  Future<void> _initialLoad() async {
+    setState(() => _loading = true);
+    try {
+      final svc = _service!;
+      final accountsF = svc.fetchAccounts();
+      final txF = svc.fetchTransactions();
+      final summaryF = svc.fetchSummary();
+      final results = await Future.wait([accountsF, txF, summaryF]);
+      if (!mounted) return;
+      _accounts = results[0] as List<AccountModel>;
+      _transactions = (results[1] as List<TransactionModel>).take(5).toList();
+      _summary = results[2] as Map<String, dynamic>;
+    } catch (e) {
+      // If backend not running yet, fall back to mock
+      _accounts = [
+        AccountModel(
+          id: '1',
+          name: 'Checking',
+          type: 'checking',
+          balance: 2450.32,
+        ),
+        AccountModel(
+          id: '2',
+          name: 'Savings',
+          type: 'savings',
+          balance: 8200.75,
+        ),
+      ];
+      _transactions = [];
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _refresh() async {
+    final svc = context.read<FinanceProvider>().service;
+    setState(() => _loading = true);
+    try {
+      final accountsF = svc.fetchAccounts();
+      final txF = svc.fetchTransactions();
+      final summaryF = svc.fetchSummary();
+      final results = await Future.wait([accountsF, txF, summaryF]);
+      if (!mounted) return;
+      _accounts = results[0] as List<AccountModel>;
+      _transactions = (results[1] as List<TransactionModel>).take(5).toList();
+      _summary = results[2] as Map<String, dynamic>;
+    } catch (_) {
+      // keep previous
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  double get _safeToSpend =>
+      _summary?['total_balance']?.toDouble() ?? 0; // simplistic placeholder
+  int get _daysToPayday => 9; // still mock
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +119,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: const Text('Dashboard'),
         actions: [
           IconButton(
-            onPressed: () => AppNavigation.goToSettings(context),
+            onPressed: () => Nav.push(context, RoutePaths.settings),
             icon: const Icon(Icons.settings_outlined),
           ),
         ],
@@ -222,7 +272,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         icon: Icons.add,
         label: 'Add Expense',
         color: AppColors.error,
-        onTap: () => AppNavigation.pushAddExpense(context),
+        onTap: () => Nav.push(context, RoutePaths.addExpense),
       ),
       _QuickAction(
         icon: Icons.swap_horiz,
@@ -273,7 +323,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Text('Recent Transactions', style: AppTextStyles.h4),
             const Spacer(),
             TextButton(
-              onPressed: () => AppNavigation.goToTransactions(context),
+              onPressed: () => Nav.push(context, RoutePaths.transactions),
               child: Text(
                 'See All',
                 style: AppTextStyles.body2.copyWith(

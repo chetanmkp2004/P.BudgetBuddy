@@ -3,35 +3,51 @@ import 'package:provider/provider.dart';
 import 'core/theme/theme_notifier.dart';
 import 'core/router/app_router.dart';
 import 'core/auth/auth_state.dart';
+import 'core/api/finance_provider.dart';
+import 'core/state/settings_state.dart';
+// API client auto-injects the mobile API key header defined in ApiConfig.
+// import 'core/api/api_client.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Mock mode – no Firebase initialization required.
-  runApp(const BudgetBuddyApp());
+  final auth = AuthState();
+  await auth.init();
+  final settings = SettingsState();
+  await settings.load();
+  runApp(BudgetBuddyRoot(auth: auth, settings: settings));
 }
 
-class BudgetBuddyApp extends StatelessWidget {
-  const BudgetBuddyApp({super.key});
+class BudgetBuddyRoot extends StatelessWidget {
+  const BudgetBuddyRoot({
+    super.key,
+    required this.auth,
+    required this.settings,
+  });
+  final AuthState auth;
+  final SettingsState settings;
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeNotifier()),
-        ChangeNotifierProvider(create: (_) => AuthState()),
+        ChangeNotifierProvider<AuthState>.value(value: auth),
+        ChangeNotifierProvider<SettingsState>.value(value: settings),
+        FinanceProvider.create(auth),
       ],
       child: Builder(
         builder: (context) {
           final theme = context.watch<ThemeNotifier>();
           final auth = context.watch<AuthState>();
-          final router = AppRouter.create(auth);
-          return MaterialApp.router(
+          return MaterialApp(
             title: 'Budget Buddy',
             debugShowCheckedModeBanner: false,
             theme: theme.light,
             darkTheme: theme.dark,
             themeMode: theme.mode,
-            routerConfig: router,
+            initialRoute: RoutePaths.welcome,
+            onGenerateRoute: onGenerateRoute,
+            home: buildHome(auth),
           );
         },
       ),

@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../models/transaction.dart';
 import '../widgets/transaction_tile.dart';
+import '../core/api/finance_provider.dart';
+import '../core/api/finance_service.dart';
+import 'package:provider/provider.dart';
+import '../core/auth/auth_state.dart';
 
 class TransactionsScreen extends StatefulWidget {
   const TransactionsScreen({super.key});
@@ -14,26 +18,65 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   final TextEditingController _search = TextEditingController();
   String _query = '';
   String _filter = 'All';
+  bool _loading = false;
+  int _page = 1;
+  bool _hasMore = true;
+  final List<TransactionModel> _all = [];
+  FinanceService? _service;
+  final ScrollController _scroll = ScrollController();
 
-  final List<TransactionModel> _all = List.generate(
-    25,
-    (i) => TransactionModel(
-      id: 'tx$i',
-      merchant:
-          i % 3 == 0
-              ? 'Starbucks'
-              : i % 3 == 1
-              ? 'Amazon'
-              : 'Salary',
-      category: i % 3 == 2 ? 'Income' : 'General',
-      amount: (i % 3 == 2) ? 2500 : (5 + i).toDouble(),
-      date: DateTime.now().subtract(Duration(days: i)),
-      isExpense: i % 3 != 2,
-    ),
-  );
+  @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(_onScroll);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final auth = context.watch<AuthState>();
+    if (_service == null || _service!.token != auth.accessToken) {
+      final provider = context.read<FinanceProvider>();
+      _service = provider.service;
+      _loadPage(refresh: true);
+    }
+  }
+
+  void _onScroll() {
+    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 200 &&
+        !_loading &&
+        _hasMore) {
+      _loadPage();
+    }
+  }
+
+  Future<void> _loadPage({bool refresh = false}) async {
+    setState(() => _loading = true);
+    if (refresh) {
+      _page = 1;
+      _hasMore = true;
+      _all.clear();
+    }
+    try {
+      final svc = _service;
+      if (svc == null) return;
+      final items = await svc.fetchTransactions(page: _page);
+      if (items.isEmpty) {
+        _hasMore = false;
+      } else {
+        _all.addAll(items);
+        _page += 1;
+      }
+    } catch (e) {
+      // ignore for now; reach could show snackbar
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   @override
   void dispose() {
+    _scroll.dispose();
     _search.dispose();
     super.dispose();
   }
@@ -42,12 +85,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Widget build(BuildContext context) {
     final filtered =
         _all.where((t) {
+          final name = (t.merchant ?? t.description ?? '').toLowerCase();
           final matchesQuery =
-              _query.isEmpty ||
-              t.merchant.toLowerCase().contains(_query.toLowerCase());
+              _query.isEmpty || name.contains(_query.toLowerCase());
           final matchesFilter =
               _filter == 'All' ||
-              (_filter == 'Income' && !t.isExpense) ||
+              (_filter == 'Income' && t.isIncome) ||
               (_filter == 'Expense' && t.isExpense);
           return matchesQuery && matchesFilter;
         }).toList();
@@ -104,19 +147,31 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
           ),
           Expanded(
-            child:
-                filtered.isEmpty
-                    ? Center(
-                      child: Text(
-                        'No transactions found',
-                        style: AppTextStyles.body1,
+            child: RefreshIndicator(
+              onRefresh: () => _loadPage(refresh: true),
+              child:
+                  filtered.isEmpty && !_loading
+                      ? Center(
+                        child: Text(
+                          'No transactions found',
+                          style: AppTextStyles.body1,
+                        ),
+                      )
+                      : ListView.builder(
+                        controller: _scroll,
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                        itemCount: filtered.length + (_loading ? 1 : 0),
+                        itemBuilder: (c, i) {
+                          if (i >= filtered.length) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+                          return TransactionTile(tx: filtered[i]);
+                        },
                       ),
-                    )
-                    : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                      itemCount: filtered.length,
-                      itemBuilder: (c, i) => TransactionTile(tx: filtered[i]),
-                    ),
+            ),
           ),
         ],
       ),
