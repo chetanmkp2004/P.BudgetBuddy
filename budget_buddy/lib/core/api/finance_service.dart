@@ -144,10 +144,18 @@ class FinanceService {
         '[FinanceService] WARNING: _authGet called without token for $path',
       );
     }
-    final res = await _client.get(path, query: query, token: token);
+    final res = await _client.get(
+      path,
+      headers: token != null ? {'Authorization': 'Bearer $token'} : null,
+      queryParameters: query,
+    );
     if (res.statusCode == 401 && onUnauthorized != null) {
       if (await onUnauthorized!()) {
-        final retry = await _client.get(path, query: query, token: token);
+        final retry = await _client.get(
+          path,
+          headers: token != null ? {'Authorization': 'Bearer $token'} : null,
+          queryParameters: query,
+        );
         return retry;
       }
     }
@@ -163,10 +171,18 @@ class FinanceService {
         '[FinanceService] WARNING: _authPost called without token for $path',
       );
     }
-    final res = await _client.post(path, body: body, token: token);
+    final res = await _client.post(
+      path,
+      body: body,
+      headers: token != null ? {'Authorization': 'Bearer $token'} : null,
+    );
     if (res.statusCode == 401 && onUnauthorized != null) {
       if (await onUnauthorized!()) {
-        final retry = await _client.post(path, body: body, token: token);
+        final retry = await _client.post(
+          path,
+          body: body,
+          headers: token != null ? {'Authorization': 'Bearer $token'} : null,
+        );
         return retry;
       }
     }

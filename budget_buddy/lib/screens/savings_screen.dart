@@ -18,7 +18,7 @@ class _SavingsScreenState extends State<SavingsScreen>
       'id': '1',
       'name': 'Emergency Fund',
       'icon': Icons.security,
-      'color': AppColors.success,
+      'color': AppTheme.success,
       'targetAmount': 10000.0,
       'currentAmount': 7500.0,
       'targetDate': DateTime.now().add(const Duration(days: 180)),
@@ -29,7 +29,7 @@ class _SavingsScreenState extends State<SavingsScreen>
       'id': '2',
       'name': 'Vacation to Japan',
       'icon': Icons.flight,
-      'color': AppColors.primaryBlue,
+      'color': AppTheme.primaryBlue,
       'targetAmount': 5000.0,
       'currentAmount': 2800.0,
       'targetDate': DateTime.now().add(const Duration(days: 365)),
@@ -40,7 +40,7 @@ class _SavingsScreenState extends State<SavingsScreen>
       'id': '3',
       'name': 'New Laptop',
       'icon': Icons.laptop,
-      'color': AppColors.warning,
+      'color': AppTheme.warning,
       'targetAmount': 2500.0,
       'currentAmount': 1200.0,
       'targetDate': DateTime.now().add(const Duration(days: 120)),
@@ -51,7 +51,7 @@ class _SavingsScreenState extends State<SavingsScreen>
       'id': '4',
       'name': 'House Down Payment',
       'icon': Icons.home,
-      'color': AppColors.error,
+      'color': AppTheme.error,
       'targetAmount': 50000.0,
       'currentAmount': 15000.0,
       'targetDate': DateTime.now().add(const Duration(days: 730)),
@@ -86,9 +86,14 @@ class _SavingsScreenState extends State<SavingsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
-        title: Text('Savings Goals', style: AppTextStyles.h3),
+        title: Text(
+          'Savings Goals',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+        ),
         centerTitle: true,
         actions: [
           IconButton(
@@ -110,14 +115,14 @@ class _SavingsScreenState extends State<SavingsScreen>
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.secondaryGreen, AppColors.success],
+          colors: [AppTheme.secondaryGreen, AppTheme.success],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.secondaryGreen.withValues(alpha: 0.3),
+            color: AppTheme.secondaryGreen.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -130,11 +135,13 @@ class _SavingsScreenState extends State<SavingsScreen>
             children: [
               Text(
                 'Total Progress',
-                style: AppTextStyles.h4.copyWith(color: Colors.white),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(color: Colors.white),
               ),
               Text(
                 '${(_overallProgress * 100).toStringAsFixed(0)}%',
-                style: AppTextStyles.h4.copyWith(
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
                 ),
@@ -150,13 +157,15 @@ class _SavingsScreenState extends State<SavingsScreen>
                   children: [
                     Text(
                       'Saved',
-                      style: AppTextStyles.caption.copyWith(
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Colors.white.withValues(alpha: 0.8),
                       ),
                     ),
                     Text(
                       '\$${_totalCurrentAmount.toStringAsFixed(0)}',
-                      style: AppTextStyles.h3.copyWith(
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineSmall?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
                       ),
@@ -166,7 +175,7 @@ class _SavingsScreenState extends State<SavingsScreen>
               ),
               Text(
                 'of \$${_totalTargetAmount.toStringAsFixed(0)}',
-                style: AppTextStyles.body1.copyWith(
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.white.withValues(alpha: 0.9),
                 ),
               ),
@@ -214,11 +223,11 @@ class _SavingsScreenState extends State<SavingsScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.gray200.withValues(alpha: 0.5),
+            color: AppTheme.gray200.withValues(alpha: 0.5),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -251,7 +260,8 @@ class _SavingsScreenState extends State<SavingsScreen>
                               Expanded(
                                 child: Text(
                                   goal['name'],
-                                  style: AppTextStyles.h4,
+                                  style:
+                                      Theme.of(context).textTheme.titleMedium,
                                 ),
                               ),
                               _buildPriorityChip(goal['priority']),
@@ -260,15 +270,14 @@ class _SavingsScreenState extends State<SavingsScreen>
                           const SizedBox(height: 4),
                           Text(
                             'Target: ${DateFormat('MMM dd, yyyy').format(goal['targetDate'])}',
-                            style: AppTextStyles.body2.copyWith(
-                              color: AppColors.gray600,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AppTheme.gray600),
                           ),
                         ],
                       ),
                     ),
                     PopupMenuButton(
-                      icon: Icon(Icons.more_vert, color: AppColors.gray500),
+                      icon: Icon(Icons.more_vert, color: AppTheme.gray500),
                       itemBuilder:
                           (context) => [
                             const PopupMenuItem(
@@ -297,16 +306,14 @@ class _SavingsScreenState extends State<SavingsScreen>
                         children: [
                           Text(
                             'Progress',
-                            style: AppTextStyles.caption.copyWith(
-                              color: AppColors.gray500,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AppTheme.gray500),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             '\$${goal['currentAmount'].toStringAsFixed(0)} of \$${goal['targetAmount'].toStringAsFixed(0)}',
-                            style: AppTextStyles.h4.copyWith(
-                              color: goal['color'],
-                            ),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(color: goal['color']),
                           ),
                         ],
                       ),
@@ -316,16 +323,17 @@ class _SavingsScreenState extends State<SavingsScreen>
                       children: [
                         Text(
                           '${(progress * 100).toStringAsFixed(0)}%',
-                          style: AppTextStyles.h4.copyWith(
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(
                             color: goal['color'],
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                         Text(
                           '$daysLeft days left',
-                          style: AppTextStyles.caption.copyWith(
-                            color: AppColors.gray500,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppTheme.gray500),
                         ),
                       ],
                     ),
@@ -340,7 +348,7 @@ class _SavingsScreenState extends State<SavingsScreen>
                         Container(
                           height: 12,
                           decoration: BoxDecoration(
-                            color: AppColors.gray200,
+                            color: AppTheme.gray200,
                             borderRadius: BorderRadius.circular(6),
                           ),
                         ),
@@ -373,7 +381,7 @@ class _SavingsScreenState extends State<SavingsScreen>
                         'Remaining',
                         '\$${remaining.toStringAsFixed(0)}',
                         Icons.radio_button_unchecked,
-                        AppColors.gray600,
+                        AppTheme.gray600,
                       ),
                     ),
                     Expanded(
@@ -435,13 +443,13 @@ class _SavingsScreenState extends State<SavingsScreen>
     Color color;
     switch (priority) {
       case 'High':
-        color = AppColors.error;
+        color = AppTheme.error;
         break;
       case 'Medium':
-        color = AppColors.warning;
+        color = AppTheme.warning;
         break;
       default:
-        color = AppColors.success;
+        color = AppTheme.success;
     }
 
     return Container(
@@ -452,7 +460,7 @@ class _SavingsScreenState extends State<SavingsScreen>
       ),
       child: Text(
         priority,
-        style: AppTextStyles.caption.copyWith(
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
           color: color,
           fontWeight: FontWeight.w600,
         ),
@@ -475,11 +483,13 @@ class _SavingsScreenState extends State<SavingsScreen>
           children: [
             Text(
               label,
-              style: AppTextStyles.caption.copyWith(color: AppColors.gray500),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppTheme.gray500),
             ),
             Text(
               value,
-              style: AppTextStyles.body2.copyWith(
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: color,
                 fontWeight: FontWeight.w600,
               ),
@@ -501,22 +511,21 @@ class _SavingsScreenState extends State<SavingsScreen>
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(60),
               ),
-              child: Icon(
-                Icons.savings,
-                size: 60,
-                color: AppColors.primaryBlue,
-              ),
+              child: Icon(Icons.savings, size: 60, color: AppTheme.primaryBlue),
             ),
             const SizedBox(height: 24),
-            Text('No Savings Goals Yet', style: AppTextStyles.h3),
+            Text(
+              'No Savings Goals Yet',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             const SizedBox(height: 12),
             Text(
               'Start building your financial future by setting your first savings goal.',
-              style: AppTextStyles.body1.copyWith(
-                color: AppColors.gray600,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.gray600,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,
@@ -599,7 +608,7 @@ class _SavingsScreenState extends State<SavingsScreen>
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Added \$100 to ${goal['name']}!'),
-                      backgroundColor: AppColors.success,
+                      backgroundColor: AppTheme.success,
                     ),
                   );
                 },
@@ -666,12 +675,12 @@ class _SavingsScreenState extends State<SavingsScreen>
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Deleted ${goal['name']}'),
-                      backgroundColor: AppColors.error,
+                      backgroundColor: AppTheme.error,
                     ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.error,
+                  backgroundColor: AppTheme.error,
                 ),
                 child: const Text('Delete'),
               ),

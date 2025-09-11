@@ -6,6 +6,9 @@ class Endpoints {
   static const categories = '/api/categories/';
   static const budgets = '/api/budgets/';
   static const summary = '/api/summary/';
+  static const categorySpending = '/api/reports/category-spending/';
+  static const budgetProgress = '/api/reports/budget-progress/';
+  static const health = '/api/health/';
   static const profile = '/api/profile/';
   static const token = '/api/auth/token/';
   static const tokenRefresh = '/api/auth/token/refresh/';

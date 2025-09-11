@@ -14,7 +14,7 @@ class TransactionTile extends StatelessWidget {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
       leading: CircleAvatar(
-        backgroundColor: color?.withOpacity(.15),
+        backgroundColor: color?.withValues(alpha: 0.15),
         child: Icon(
           tx.isExpense ? Icons.arrow_downward : Icons.arrow_upward,
           color: color,

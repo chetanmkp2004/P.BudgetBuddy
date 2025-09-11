@@ -34,37 +34,46 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  # Firebase packages removed after migration to Django JWT auth
   
-  # UI & Navigation
+  # State Management
   provider: ^6.1.2
   
-  # HTTP & API
-  http: ^1.2.2
-  dio: ^5.7.0
+  # UI & Animations
+  animations: ^2.0.11
+  shimmer: ^3.0.0
+  lottie: ^3.1.3
+  flutter_svg: ^2.0.10+1
+  
+  # Charts & Graphs
+  fl_chart: ^0.68.0
+  
+  # Icons & Fonts
+  google_fonts: ^6.2.1
+  
+  # Utils
+  intl: ^0.20.2
+  
+  # HTTP Client
+  http: ^1.1.0
+  
+  # Image & Camera
+  image_picker: ^1.1.2
   
   # Local Storage
   shared_preferences: ^2.3.3
-  sqflite: ^2.4.1
   
-  # Camera & Image
-  image_picker: ^1.1.2
-  camera: ^0.11.1
+  # Navigation
+  go_router: ^16.2.1
   
-  # Date & Time
-  intl: ^0.19.0
+  # Firebase
+  firebase_core: ^4.1.0
+  firebase_auth: ^6.0.2
+  cloud_firestore: ^6.0.1
+  firebase_messaging: ^16.0.1
   
-  # Charts & Visualization
-  fl_chart: ^0.69.2
-  
-  # Animations
-  lottie: ^3.1.3
-  
-  # Biometric Auth
+  # Auth
   local_auth: ^2.3.0
-  
-  # Permissions
-  permission_handler: ^11.3.1
+  flutter_secure_storage: ^9.2.4
 
 dev_dependencies:
   flutter_test:
@@ -93,7 +102,8 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
-
+    - assets/fonts/
+  
   # Fonts
   fonts:
     - family: Inter

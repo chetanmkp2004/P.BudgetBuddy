@@ -31,12 +31,6 @@ class AppTheme {
   static const Color gray800 = Color(0xFF1F2937);
   static const Color gray900 = Color(0xFF111827);
 
-  // Additional Colors for Categories
-  static const Color purple = Color(0xFF8B5CF6);
-  static const Color pink = Color(0xFFEC4899);
-  static const Color teal = Color(0xFF14B8A6);
-  static const Color indigo = Color(0xFF6366F1);
-
   /// Light Theme Configuration
   static ThemeData get lightTheme {
     const ColorScheme colorScheme = ColorScheme.light(
@@ -404,103 +398,4 @@ class AppColors {
   static const Color background = AppTheme.backgroundLight;
   static const Color surface = AppTheme.surfaceLight;
   static const Color cardBackground = AppTheme.surfaceLight;
-}
-
-/// Text styles used throughout the app for backward compatibility
-class AppTextStyles {
-  // Primary heading styles
-  static const TextStyle h1 = TextStyle(
-    fontSize: 32,
-    fontWeight: FontWeight.bold,
-    letterSpacing: -0.5,
-  );
-
-  static const TextStyle h2 = TextStyle(
-    fontSize: 24,
-    fontWeight: FontWeight.w600,
-    letterSpacing: -0.25,
-  );
-
-  static const TextStyle h3 = TextStyle(
-    fontSize: 20,
-    fontWeight: FontWeight.w600,
-    letterSpacing: 0,
-  );
-
-  static const TextStyle h4 = TextStyle(
-    fontSize: 18,
-    fontWeight: FontWeight.w600,
-    letterSpacing: 0,
-  );
-
-  // Legacy heading styles
-  static const TextStyle heading1 = h1;
-  static const TextStyle heading2 = h2;
-  static const TextStyle heading3 = h3;
-
-  // Subtitle styles
-  static const TextStyle subtitle1 = TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.w500,
-    letterSpacing: 0.15,
-  );
-
-  static const TextStyle subtitle2 = TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-    letterSpacing: 0.1,
-  );
-
-  // Body text styles
-  static const TextStyle body1 = TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.w400,
-    letterSpacing: 0.5,
-  );
-
-  static const TextStyle body2 = TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w400,
-    letterSpacing: 0.25,
-  );
-
-  // Amount/Money display styles
-  static const TextStyle amountLarge = TextStyle(
-    fontSize: 32,
-    fontWeight: FontWeight.w700,
-    letterSpacing: -0.5,
-  );
-
-  static const TextStyle amountMedium = TextStyle(
-    fontSize: 24,
-    fontWeight: FontWeight.w600,
-    letterSpacing: -0.25,
-  );
-
-  static const TextStyle amountSmall = TextStyle(
-    fontSize: 18,
-    fontWeight: FontWeight.w600,
-    letterSpacing: 0,
-  );
-
-  // UI element styles
-  static const TextStyle caption = TextStyle(
-    fontSize: 12,
-    fontWeight: FontWeight.w400,
-    letterSpacing: 0.4,
-  );
-
-  static const TextStyle button = TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-    letterSpacing: 1.25,
-  );
-
-  static const TextStyle buttonText = button;
-
-  static const TextStyle overline = TextStyle(
-    fontSize: 10,
-    fontWeight: FontWeight.w400,
-    letterSpacing: 1.5,
-  );
 }

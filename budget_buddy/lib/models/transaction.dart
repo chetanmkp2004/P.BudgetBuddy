@@ -11,6 +11,12 @@ class TransactionModel {
   final bool isPending;
   final String? accountId;
 
+  // Additional properties for UI compatibility
+  final String? category;
+  final String? categoryIcon;
+  final String? categoryColor;
+  final DateTime? date;
+
   bool get isExpense => direction == 'out';
   bool get isIncome => direction == 'in';
 
@@ -25,6 +31,10 @@ class TransactionModel {
     this.categoryId,
     this.isPending = false,
     this.accountId,
+    this.category,
+    this.categoryIcon,
+    this.categoryColor,
+    this.date,
   });
 
   factory TransactionModel.fromJson(Map<String, dynamic> j) => TransactionModel(
@@ -54,3 +64,6 @@ class TransactionModel {
     if (accountId != null) 'account': accountId,
   };
 }
+
+// Type alias for backward compatibility
+typedef Transaction = TransactionModel;

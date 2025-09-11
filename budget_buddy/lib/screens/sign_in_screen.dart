@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../core/router/app_router.dart';
+import 'package:go_router/go_router.dart';
 import '../core/auth/auth_state.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -16,6 +16,52 @@ class _SignInScreenState extends State<SignInScreen> {
   final _passwordController = TextEditingController();
   bool _obscure = true;
   bool _loading = false;
+  bool _biometricsAvailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometrics();
+  }
+
+  Future<void> _checkBiometrics() async {
+    final authState = context.read<AuthState>();
+    if (authState.isBiometricsEnabled && authState.biometricsAvailable) {
+      setState(() => _biometricsAvailable = true);
+
+      // Show biometric prompt after a short delay
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (!mounted) return;
+        _authenticateWithBiometrics();
+      });
+    }
+  }
+
+  Future<void> _authenticateWithBiometrics() async {
+    if (!_biometricsAvailable) return;
+
+    setState(() => _loading = true);
+
+    try {
+      final success = await context
+          .read<AuthState>()
+          .authenticateWithBiometrics(context);
+
+      if (success && mounted) {
+        context.go('/dashboard');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Biometric authentication failed: ${e.toString()}'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -26,7 +72,7 @@ class _SignInScreenState extends State<SignInScreen> {
         _passwordController.text,
       );
       if (!mounted) return;
-      Nav.toDashboard(context);
+      context.go('/dashboard');
     } catch (e) {
       final msg = e.toString().replaceFirst('AuthException', 'Auth');
       if (mounted) {
@@ -118,10 +164,18 @@ class _SignInScreenState extends State<SignInScreen> {
                             )
                             : const Text('Sign In'),
                   ),
+                  if (_biometricsAvailable) ...[
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: _loading ? null : _authenticateWithBiometrics,
+                      icon: const Icon(Icons.fingerprint),
+                      label: const Text('Sign in with biometrics'),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   Center(
                     child: TextButton(
-                      onPressed: () => Nav.push(context, RoutePaths.signUp),
+                      onPressed: () => context.go('/signup'),
                       child: const Text("Don't have an account? Sign Up"),
                     ),
                   ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../core/theme/app_theme.dart';
-import '../core/router/app_router.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -11,7 +11,7 @@ class WelcomeScreen extends StatelessWidget {
     final bool compact = size.height < 700; // responsive spacing threshold
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppTheme.backgroundLight,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -25,7 +25,7 @@ class WelcomeScreen extends StatelessWidget {
                 height: 80,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppColors.primaryBlue, AppColors.secondaryGreen],
+                    colors: [AppTheme.primaryBlue, AppTheme.secondaryGreen],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -41,17 +41,18 @@ class WelcomeScreen extends StatelessWidget {
               // App Title
               Text(
                 'Budget Buddy',
-                style: AppTextStyles.h1.copyWith(
-                  color: AppColors.primaryBlue,
+                style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                  color: AppTheme.primaryBlue,
                   fontSize: compact ? 28 : 32,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 12),
               // Subtitle
               Text(
                 'Take control of your finances',
-                style: AppTextStyles.h3.copyWith(
-                  color: AppColors.gray700,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: AppTheme.gray700,
                   fontSize: compact ? 18 : 20,
                 ),
               ),
@@ -59,8 +60,8 @@ class WelcomeScreen extends StatelessWidget {
               // Description
               Text(
                 'Track spending, set budgets, and reach your savings goals with intelligent insights.',
-                style: AppTextStyles.body1.copyWith(
-                  color: AppColors.gray600,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.gray600,
                   height: 1.5,
                   fontSize: compact ? 14 : 16,
                 ),
@@ -90,7 +91,7 @@ class WelcomeScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () => Nav.push(context, RoutePaths.signUp),
+                  onPressed: () => context.go('/signup'),
                   child: const Text('Get Started'),
                 ),
               ),
@@ -99,11 +100,11 @@ class WelcomeScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 56,
                 child: TextButton(
-                  onPressed: () => Nav.push(context, RoutePaths.signIn),
+                  onPressed: () => context.go('/signin'),
                   child: Text(
                     'I already have an account',
-                    style: AppTextStyles.buttonText.copyWith(
-                      color: AppColors.primaryBlue,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: AppTheme.primaryBlue,
                     ),
                   ),
                 ),
@@ -127,19 +128,29 @@ class WelcomeScreen extends StatelessWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: AppColors.primaryBlue.withOpacity(0.1),
+            color: AppTheme.primaryBlue.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, color: AppColors.primaryBlue, size: 24),
+          child: Icon(icon, color: AppTheme.primaryBlue, size: 24),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: AppTextStyles.h4),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.gray900,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(description, style: AppTextStyles.body2),
+              Text(
+                description,
+                style: const TextStyle(fontSize: 14, color: AppTheme.gray600),
+              ),
             ],
           ),
         ),
